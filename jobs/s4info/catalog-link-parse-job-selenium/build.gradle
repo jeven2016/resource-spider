@@ -1,0 +1,105 @@
+plugins {
+    // shadow plugin to produce fat JARs
+    id "com.github.johnrengelman.shadow" version "7.0.0"
+    id "application"
+    id "io.freefair.lombok" version "6.1.0"
+}
+
+
+// artifact properties
+mainClassName = 'wzjtech.LinkParserJob'
+description = """Flink Jobs"""
+
+applicationDefaultJvmArgs = ["-Dlog4j.configuration=log4j.properties"]
+
+// declare where to find the dependencies of your project
+repositories {
+    mavenCentral()
+}
+
+// 注意：我们不能使用 "compileOnly" 或者 "shadow" 配置，这会使我们无法在 IDE 中或通过使用 "gradle run" 命令运行代码。
+// 我们也不能从 shadowJar 中排除传递依赖（请查看 https://github.com/johnrengelman/shadow/issues/159)。
+// -> 显式定义我们想要包含在 "flinkShadowJar" 配置中的类库!
+configurations {
+    flinkShadowJar // dependencies which go into the shadowJar
+
+    // 总是排除这些依赖（也来自传递依赖），因为 Flink 会提供这些依赖。
+    flinkShadowJar.exclude group: 'org.apache.flink', module: 'force-shading'
+    flinkShadowJar.exclude group: 'com.google.code.findbugs', module: 'jsr305'
+    flinkShadowJar.exclude group: 'org.slf4j'
+    flinkShadowJar.exclude group: 'log4j'
+}
+
+// declare the dependencies for your production and test code
+dependencies {
+    // --------------------------------------------------------------
+    // 编译时依赖不应该包含在 shadow jar 中，
+    // 这些依赖会在 Flink 的 lib 目录中提供。
+    // --------------------------------------------------------------
+    implementation libs.'flink-java'
+    implementation libs.'flink-streaming-java'
+    implementation libs.'flink-runtime-web'
+    implementation libs.'flink-clients'
+
+    // --------------------------------------------------------------
+    // 应该包含在 shadow jar 中的依赖，例如：连接器。
+    // 它们必须在 flinkShadowJar 的配置中！
+    // --------------------------------------------------------------
+    //flinkShadowJar "org.apache.flink:flink-connector-kafka-0.11_${scalaBinaryVersion}:${flinkVersion}"
+    flinkShadowJar libs.'flink-connector-kafka-base'
+    flinkShadowJar 'org.apache.flink:flink-connector-kafka_2.12:1.13.2'
+
+    flinkShadowJar project(':common')
+    flinkShadowJar libs.kryo
+
+    //build a model from the picocli annotations at compile time rather than at runtime.
+    flinkShadowJar 'info.picocli:picocli:4.6.1'
+    annotationProcessor libs.'picocli-codegen'
+
+    //selenium
+    flinkShadowJar libs.'selenium-java'
+    flinkShadowJar libs.'selenium-chrome-driver'
+    flinkShadowJar libs.'selenium-firefox-driver'
+
+    //mongodb
+    flinkShadowJar libs.mongodb
+
+    implementation "log4j:log4j:1.2.17"
+    implementation "org.slf4j:slf4j-log4j12:1.7.7"
+
+    // Add test dependencies here.
+    // testCompile "junit:junit:4.12"
+}
+
+// make compileOnly dependencies available for tests:
+sourceSets {
+    main.compileClasspath += configurations.flinkShadowJar
+    main.runtimeClasspath += configurations.flinkShadowJar
+
+    test.compileClasspath += configurations.flinkShadowJar
+    test.runtimeClasspath += configurations.flinkShadowJar
+
+    javadoc.classpath += configurations.flinkShadowJar
+}
+
+run.classpath = sourceSets.main.runtimeClasspath
+
+jar {
+    manifest {
+        attributes 'Built-By': System.getProperty('user.name'),
+                'Build-Jdk': System.getProperty('java.version')
+    }
+}
+
+shadowJar {
+    configurations = [project.configurations.flinkShadowJar]
+}
+
+task prepareKotlinBuildScriptModel {
+
+}
+
+//Enabling the Annotation Processor for picocli
+compileJava {
+    options.compilerArgs += ["-Aproject=${project.group}/${project.name}"]
+}

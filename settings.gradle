@@ -1,0 +1,4 @@
+rootProject.name = 'resource-spider'
+include ':jobs:s4info:catalog-link-parse-job-selenium'
+include 'common'
+
