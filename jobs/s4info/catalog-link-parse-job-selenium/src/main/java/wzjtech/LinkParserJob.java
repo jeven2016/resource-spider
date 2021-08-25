@@ -46,6 +46,7 @@ public class LinkParserJob implements Callable<Integer> {
         var env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setRuntimeMode(RuntimeExecutionMode.STREAMING);  //根据数据源来定，如果有限数据使用Batch
 //        env.registerTypeWithKryoSerializer(Catalog.class, );
+        env.getConfig().registerTypeWithKryoSerializer(Entities.Catalog.class,);
 
         Properties properties = new Properties();
         properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");

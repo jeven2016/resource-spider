@@ -8,7 +8,7 @@ import org.objenesis.strategy.StdInstantiatorStrategy;
  * Kryo instances pool
  */
 public class KryPoolManager {
-    private final Pool<Kryo> kryoPool = new Pool<Kryo>(true, false, 8) {
+    private final Pool<Kryo> kryoPool = new Pool<Kryo>(true, false, 10) {
         protected Kryo create() {
             Kryo kryo = new Kryo();
 
